@@ -72,4 +72,46 @@ def download_file_with_retry(authed_session, f_id, full_save_path, f_name, mime_
                 time.sleep(2)
             else:
                 return False
+            
+
+def download_all_from_folder(folder_id, local_destination_dir):
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    authed_session = AuthorizedSession(creds)
+
+    if not os.path.exists(local_destination_dir):
+        os.makedirs(local_destination_dir)
+
+    try:
+        url = "https://www.googleapis.com/drive/v3/files"
+        params = {
+            "q": f"'{folder_id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false",
+            "fields": "files(id, name, mimeType)",
+            "pageSize": 100
+        }
+        
+        response = authed_session.get(url, params=params, timeout=20)
+        response.raise_for_status()
+        files = response.json().get('files', [])
+
+        if not files:
+            print("Empty.")
+            return
+
+        for file_info in files:
+            f_id = file_info['id']
+            f_name = file_info['name']
+            f_mime = file_info['mimeType']
+            
+            full_save_path = os.path.join(local_destination_dir, f_name)
+            
+            if not f_mime in GOOGLE_MIME_TYPES and os.path.exists(full_save_path):
+                continue
+                
+            download_file_with_retry(authed_session, f_id, full_save_path, f_name, f_mime)
+
+    except Exception as e:
+        print(f"\n[КРИТИЧЕСКАЯ ОШИБКА]: {e}")
+
+
 
