@@ -111,7 +111,13 @@ def download_all_from_folder(folder_id, local_destination_dir):
             download_file_with_retry(authed_session, f_id, full_save_path, f_name, f_mime)
 
     except Exception as e:
-        print(f"\n[КРИТИЧЕСКАЯ ОШИБКА]: {e}")
+        print(f"\n Error{e}")
 
 
-
+if __name__ == '__main__':
+    FOLDER_ID_AUDIO = '1dpKG-eaFg2glOovkI4sYgLyPo3mW9Ilg' 
+    FOLDER_ID_TABLE = '1R3hDscEc_Ujh1FytqWROg4tS__qcO1Ub' 
+    SAVE_DIR = r'F:\it\Python\files'  
+    
+    download_all_from_folder(FOLDER_ID_AUDIO, SAVE_DIR)
+    download_all_from_folder(FOLDER_ID_TABLE, SAVE_DIR)
