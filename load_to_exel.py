@@ -37,7 +37,7 @@ class CallAnalysis(BaseModel):
     is_ok: bool = Field(description="true если ОК, false если Не ОК")
     comment: str = Field(description="Комментарий с разбором")
 
-def analyze_conversation(transcript_text, services_list):  # Увеличили число попыток до 5
+def analyze_conversation(transcript_text, services_list):  
     system_instruction = f"""
     Ты — строгий профессиональный аудитор контроля качества телефонных звонков в автосервисе (СТО).
     Твоя задача — проанализировать диалог и вернуть результат СТРОГО в формате JSON по схеме.
@@ -72,5 +72,69 @@ def analyze_conversation(transcript_text, services_list):  # Увеличили 
         print(f"Error {error_msg}")
                 
     return None
+
+
+def process_and_save_data(excel_path, audio_filename, transcript_text):
+    analysis = analyze_conversation(transcript_text, services_list)
+    
+    clean_transcript = str(transcript_text).strip()
+
+    target_columns = ["Транскрибация", "тип работ", "есть ли запись", "оценка  работы менеджера"]
+    
+    if analysis:
+        new_data = {
+            "Транскрибация": clean_transcript,
+            "тип работ": analysis.get("job_type"),
+            "есть ли запись": "ОК" if analysis.get("is_ok") else "Не ОК",
+            "оценка  работы менеджера": analysis.get("manager_rating")
+        }
+    else:
+        new_data = {
+            "Транскрибация": clean_transcript,
+            "тип работ": "Ошибка анализа (Сервер занят)",
+            "есть ли запись": "Не проверено",
+            "оценка  работы менеджера": "-"
+        }
+
+    if os.path.exists(excel_path):
+        df = pd.read_excel(excel_path)
+        existing_targets = [col for col in target_columns if col in df.columns]
+
+        if existing_targets:
+            df = df[existing_targets]
+        else:
+            df = pd.DataFrame(columns=target_columns)
+        
+        if not df.empty and "Транскрибация" in df.columns:
+            df["Транскрибация"] = df["Транскрибация"].astype(str).str.strip()
+            marker = "".join(clean_transcript[:30].split()).lower()
+            
+            def match_marker(row_text):
+                return "".join(str(row_text)[:30].split()).lower() == marker
+            
+            match_index = df[df["Транскрибация"].apply(match_marker)].index
+            
+            if not match_index.empty:
+                for key, value in new_data.items():
+                    df.loc[match_index[0], key] = value
+                
+                if len(match_index) > 1:
+                    df = df.drop(match_index[1:])
+                
+             
+                df = df.reindex(columns=target_columns)
+                df = df.fillna("-")
+                df.to_excel(excel_path, index=False)
+                return
+
+        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+    else:
+        df = pd.DataFrame([new_data])
+
+    df = df.reindex(columns=target_columns)
+    df = df.fillna("-")
+    df.to_excel(excel_path, index=False)
+    print(f"[УСПЕХ] Новые данные записаны. В таблице осталось строго {len(target_columns)} колонки.\n")
+
 
 
