@@ -134,7 +134,29 @@ def process_and_save_data(excel_path, audio_filename, transcript_text):
     df = df.reindex(columns=target_columns)
     df = df.fillna("-")
     df.to_excel(excel_path, index=False)
-    print(f"[УСПЕХ] Новые данные записаны. В таблице осталось строго {len(target_columns)} колонки.\n")
+
+if __name__ == '__main__':
+
+    EXCEL_PATH = r'F:\it\Python\files\Транскрибация1.xlsx'
+    SAVE_DIR = r'F:\it\Python\files'  
+
+    for file in os.listdir(SAVE_DIR):
+        text_file = os.path.join(SAVE_DIR, file)
+        
+        if file.endswith('.txt') and os.path.isfile(text_file):
+            file_content = None
+            
+            try:
+                with open(text_file, "r", encoding="utf-8") as g:
+                    file_content = g.read()
+            except Exception as e:
+                print(f"Error in {file}: {e}")
+                continue 
+            
+            if file_content is not None:
+                process_and_save_data(EXCEL_PATH, file, file_content)
+
+
 
 
 
