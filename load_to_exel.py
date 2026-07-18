@@ -32,32 +32,32 @@ services_list = [
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 class CallAnalysis(BaseModel):
-    job_type: str = Field(description="Выбранный тип работ из списка")
-    manager_rating: int = Field(description="Оценка от 1 до 5")
-    is_ok: bool = Field(description="true если ОК, false если Не ОК")
-    comment: str = Field(description="Комментарий с разбором")
+    job_type: str = Field(description="Вибраний тип робіт зі списку")
+    manager_rating: int = Field(description="Оцінка від 1 до 5")
+    is_ok: bool = Field(description="true якщо ОК, false якщо Не ОК")
+    comment: str = Field(description="Коментар із розбором")
 
 def analyze_conversation(transcript_text, services_list):  
     system_instruction = f"""
-    Ты — строгий профессиональный аудитор контроля качества телефонных звонков в автосервисе (СТО).
-    Твоя задача — проанализировать диалог и вернуть результат СТРОГО в формате JSON по схеме.
+    Ти — суворий професійний аудитор контролю якості телефонних дзвінків в автосервісі (СТО).
+    Твоє завдання — проаналізувати діалог і повернути результат СТРОГО у форматі JSON за схемою.
 
-    ПРАВИЛА ОПРЕДЕЛЕНИЯ ТИПА РАБОТ:
-    Выбери ОДНО точное значение из этого списка: {services_list}.
-    - Если клиент обращается по поводу автоэлектрики, замены фар, лампочек, ремонта кнопок, дооснащения или любых других механических задач, которых НЕТ в списке — выбирай СТРОГО "Слюсарні роботи".
-    - Если клиент говорит об ошибках на панели, чеке, компьютерной проверке — выбирай "Комп'ютерна діагностика".
-    - Если клиент говорит о стуках в ходовой, проверке подвески — выбирай "Комплексна діагностика підвіски".
+    ПРАВИЛА ВИЗНАЧЕННЯ ТИПУ РОБІТ:
+    Вибери ОДНЕ точне значення з цього списку: {services_list}.
+    - Якщо клієнт звертається щодо автоелектрики, заміни фар, лампочок, ремонту кнопок, дооснащення або будь-яких інших механічних завдань, яких НЕМАЄ в списку — вибирай СТРОГО "Слюсарні роботи".
+    - Якщо клієнт говорить про помилки на панелі приладів, чек (check engine), комп'ютерну перевірку — вибирай "Комп'ютерна діагностика".
+    - Якщо клієнт говорить про стуки в ходовій частині, перевірку підвіски — вибирай "Комплексна діагностика підвіски".
     
-    ПРАВИЛА ОЦЕНКИ И СТАТУСА:
-    - Поставь is_ok = true (ОК), только если менеджер был вежлив и зафиксировал запись/нашел альтернативу.
-    - Поставь is_ok = false (Не ОК), если менеджер «слил» клиента.
-    - Оценка manager_rating ставится от 1 до 5.
+    ПРАВИЛА ОЦІНЮВАННЯ ТА СТАТУСУ:
+    - Постав is_ok = true (ОК), тільки якщо менеджер був ввічливим і зафіксував запис або знайшов альтернативу.
+    - Постав is_ok = false (Не ОК), якщо менеджер «злив» клієнта.
+    - Оцінка manager_rating ставиться від 1 до 5.
     """
 
     try:
         response = client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=f"Проанализируй этот диалог:\n{transcript_text}",
+            contents=f"Проаналізуй цей діалог:\n{transcript_text}",
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 response_mime_type="application/json",
@@ -79,21 +79,21 @@ def process_and_save_data(excel_path, audio_filename, transcript_text):
     
     clean_transcript = str(transcript_text).strip()
 
-    target_columns = ["Транскрибация", "тип работ", "есть ли запись", "оценка  работы менеджера"]
+    target_columns = ["Транскрибація", "тип робіт", "чи є запис", "оцінка роботи менеджера"]
     
     if analysis:
         new_data = {
-            "Транскрибация": clean_transcript,
-            "тип работ": analysis.get("job_type"),
-            "есть ли запись": "ОК" if analysis.get("is_ok") else "Не ОК",
-            "оценка  работы менеджера": analysis.get("manager_rating")
+            "Транскрибація": clean_transcript,
+            "тип робіт": analysis.get("job_type"),
+            "чи є запис": "ОК" if analysis.get("is_ok") else "Не ОК",
+            "оцінка роботи менеджера": analysis.get("manager_rating")
         }
     else:
         new_data = {
-            "Транскрибация": clean_transcript,
-            "тип работ": "Ошибка анализа (Сервер занят)",
-            "есть ли запись": "Не проверено",
-            "оценка  работы менеджера": "-"
+            "Транскрибація": clean_transcript,
+            "тип робіт": "Помилка аналізу",
+            "чи є запис": "Не перевірено",
+            "оцінка роботи менеджера": "-"
         }
 
     if os.path.exists(excel_path):
@@ -105,14 +105,14 @@ def process_and_save_data(excel_path, audio_filename, transcript_text):
         else:
             df = pd.DataFrame(columns=target_columns)
         
-        if not df.empty and "Транскрибация" in df.columns:
-            df["Транскрибация"] = df["Транскрибация"].astype(str).str.strip()
+        if not df.empty and "Транскрибація" in df.columns:
+            df["Транскрибація"] = df["Транскрибація"].astype(str).str.strip()
             marker = "".join(clean_transcript[:30].split()).lower()
             
             def match_marker(row_text):
                 return "".join(str(row_text)[:30].split()).lower() == marker
             
-            match_index = df[df["Транскрибация"].apply(match_marker)].index
+            match_index = df[df["Транскрибація"].apply(match_marker)].index
             
             if not match_index.empty:
                 for key, value in new_data.items():
@@ -137,7 +137,7 @@ def process_and_save_data(excel_path, audio_filename, transcript_text):
 
 if __name__ == '__main__':
 
-    EXCEL_PATH = r'F:\it\Python\files\Транскрибация1.xlsx'
+    EXCEL_PATH = r'F:\it\Python\files\Транскрибація1.xlsx'
     SAVE_DIR = r'F:\it\Python\files'  
 
     for file in os.listdir(SAVE_DIR):
