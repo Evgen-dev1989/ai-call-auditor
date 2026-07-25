@@ -1,5 +1,4 @@
-import pytest
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch
 import json
 from load_to_exel import analyze_conversation, CallAnalysis
 
@@ -35,3 +34,4 @@ def test_analyze_conversation_success(mock_client):
     assert result["manager_rating"] == 5
     assert result["is_ok"] is True
     assert mock_client.models.generate_content.call_count == 1
+
